@@ -1,1030 +1,1187 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="リーディング">
-<title>リーディング</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-:root{--blue:#3b82c4;--blue-light:#ebf2fb;--blue-dark:#2563a8;--gray:#f5f6fa;--border:#d8e2ef;--text:#1a2236;--sub:#6b7a99;--white:#fff;--danger:#e53e3e}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;font-size:16px;background:var(--gray);color:var(--text);min-height:100vh;overscroll-behavior:none}
-input,textarea,select,button{font-family:inherit;font-size:16px}
-button{cursor:pointer;border:none;outline:none}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>こんだて管理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* PIN SCREEN */
-#pinScreen{position:fixed;inset:0;background:var(--blue);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:24px}
-#pinScreen h1{color:#fff;font-size:24px;font-weight:700;letter-spacing:.05em}
-#pinDots{display:flex;gap:16px}
-.pin-dot{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.4);transition:.2s}
-.pin-dot.filled{background:#fff}
-#pinError{color:#ffd6d6;font-size:14px;height:20px;text-align:center}
-#pinPad{display:grid;grid-template-columns:repeat(3,72px);gap:12px}
-.pin-btn{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font-size:24px;font-weight:600;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:.15s}
-.pin-btn:active{background:rgba(255,255,255,.38)}
-.pin-btn.del{font-size:18px}
-.pin-btn.empty{background:transparent;pointer-events:none}
+    :root {
+      --primary: #4CAF50;
+      --primary-dark: #388E3C;
+      --danger: #f44336;
+      --warning: #FF9800;
+      --info: #2196F3;
+      --bg: #f0f2f5;
+      --card-bg: #fff;
+      --text: #1a1a1a;
+      --text-light: #666;
+      --border: #e0e0e0;
+    }
 
-/* APP SHELL */
-#app{display:none;flex-direction:column;min-height:100vh}
-#app.visible{display:flex}
-.page{display:none;flex:1;flex-direction:column;padding-bottom:64px}
-.page.active{display:flex}
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 600px;
+      margin: 0 auto;
+      padding-bottom: 80px;
+    }
 
-/* HEADER */
-.header{background:var(--white);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
-.header h2{font-size:18px;font-weight:700;flex:1}
-.header .back-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:20px;background:none;border:none}
-.btn-icon{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;border:none}
+    /* ===== HEADER / TABS ===== */
+    .app-header {
+      background: var(--primary);
+      color: white;
+      padding: 14px 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
 
-/* BOTTOM NAV */
-#bottomNav{position:fixed;bottom:0;left:0;right:0;height:64px;background:var(--white);border-top:1px solid var(--border);display:flex;z-index:200}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;color:var(--sub);font-size:11px;font-weight:500;padding:8px 0}
-.nav-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.nav-btn.active{color:var(--blue)}
+    .app-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
 
-/* SEARCH */
-.search-bar{padding:12px 16px;background:var(--white);border-bottom:1px solid var(--border)}
-.search-bar input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;background:var(--gray);font-size:16px;outline:none}
-.search-bar input:focus{border-color:var(--blue);background:#fff}
+    .app-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
 
-/* DAY FILTER */
-.day-filter{padding:10px 16px;background:var(--white);border-bottom:1px solid var(--border);display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.day-filter::-webkit-scrollbar{display:none}
-.df-btn{flex-shrink:0;padding:7px 12px;border-radius:20px;background:var(--gray);border:1px solid var(--border);font-size:14px;font-weight:600;color:var(--sub);cursor:pointer;white-space:nowrap;transition:.15s}
-.df-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
-.df-btn.today{border-color:var(--blue);color:var(--blue)}
-.df-btn.today.active{background:var(--blue);color:#fff}
+    .header-actions { display: flex; gap: 6px; }
 
-/* USER LIST */
-.user-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
-.user-card{background:var(--white);border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:12px;cursor:pointer;transition:.15s}
-.user-card:active{transform:scale(.98);background:var(--blue-light)}
-.user-card.dragging{opacity:.4;transform:scale(.97);box-shadow:0 4px 16px rgba(59,130,196,.25)}
-.user-card.drag-top{border-top:3px solid var(--blue)}
-.user-card.drag-bot{border-bottom:3px solid var(--blue)}
-.user-avatar{width:46px;height:46px;border-radius:50%;background:var(--blue-light);color:var(--blue);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.user-info{flex:1;min-width:0}
-.user-name{font-size:17px;font-weight:600}
-.user-sub{font-size:13px;color:var(--sub);margin-top:2px}
-.fab{position:fixed;bottom:76px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--blue);color:#fff;font-size:28px;box-shadow:0 4px 12px rgba(59,130,196,.4);display:flex;align-items:center;justify-content:center;z-index:150}
-.fab:active{background:var(--blue-dark)}
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-/* USER DETAIL */
-#page-userDetail{overflow-y:auto}
-.detail-header{background:var(--white);padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.detail-avatar{width:56px;height:56px;border-radius:50%;background:var(--blue-light);color:var(--blue);font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.detail-name{font-size:20px;font-weight:700}
-.detail-sub{font-size:14px;color:var(--sub);margin-top:2px}
-.detail-body{padding:12px 16px 16px;display:flex;flex-direction:column;gap:10px}
-.detail-section{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.detail-section-title{font-size:13px;font-weight:700;color:var(--blue);padding:12px 16px 8px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
-.detail-row{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px}
-.detail-row:last-child{border-bottom:none}
-.detail-label{font-size:13px;color:var(--sub);width:90px;flex-shrink:0;padding-top:1px}
-.detail-value{flex:1;font-size:16px;white-space:pre-wrap;word-break:break-word}
-.detail-value.empty{color:#bbb;font-size:14px}
-.edit-btn{background:var(--blue);color:#fff;padding:10px 22px;border-radius:10px;font-size:15px;font-weight:600;border:none;cursor:pointer}
-.edit-btn.secondary{background:var(--gray);color:var(--text)}
-.edit-bar{padding:12px 16px;display:flex;gap:10px;background:var(--white);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
-.edit-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-size:16px;background:var(--gray);outline:none;resize:vertical;min-height:38px}
-.edit-input:focus{border-color:var(--blue);background:#fff}
-.days-picker{display:flex;gap:6px;flex-wrap:wrap;padding:4px 0}
-.day-btn{padding:6px 10px;border-radius:8px;background:var(--gray);border:1px solid var(--border);font-size:14px;font-weight:600;color:var(--sub);cursor:pointer}
-.day-btn.selected{background:var(--blue);color:#fff;border-color:var(--blue)}
+    .tabs { display: flex; }
 
-/* MANUAL */
-.manual-list{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
-.manual-item{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.manual-item-header{padding:14px 16px;display:flex;align-items:center;gap:8px;cursor:pointer}
-.manual-item-title{flex:1;font-size:16px;font-weight:600}
-.manual-chevron{color:var(--sub);transition:.2s;font-size:18px}
-.manual-item.open .manual-chevron{transform:rotate(90deg)}
-.manual-item-body{display:none;padding:0 16px 14px}
-.manual-item.open .manual-item-body{display:block}
-.manual-item-text{font-size:15px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--text)}
-.manual-item-actions{display:flex;gap:8px;margin-top:10px}
+    .tab-btn {
+      flex: 1;
+      padding: 10px 2px;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.65);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
 
-/* SETTINGS */
-.settings-body{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:14px}
-.settings-section{background:var(--white);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.settings-section-title{font-size:13px;font-weight:700;color:var(--blue);padding:12px 16px 10px;border-bottom:1px solid var(--border);letter-spacing:.04em}
-.settings-row{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.settings-row:last-child{border-bottom:none}
-.settings-row-label{flex:1;font-size:16px}
-.settings-row-btn{padding:8px 16px;border-radius:9px;font-size:14px;font-weight:600;border:none;cursor:pointer}
-.btn-blue{background:var(--blue);color:#fff}
-.btn-red{background:var(--danger);color:#fff}
-.btn-gray{background:var(--gray);color:var(--text);border:1px solid var(--border)}
-.field-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.field-item:last-child{border-bottom:none}
-.field-item-name{flex:1;font-size:15px}
-.field-handle{color:#ccc;font-size:18px;padding:0 4px;cursor:grab;user-select:none}
-.field-item-btns{display:flex;gap:6px}
-.field-item-btns button{width:32px;height:32px;border-radius:8px;font-size:14px;display:flex;align-items:center;justify-content:center}
-.add-field-row{padding:12px 16px;display:flex;gap:8px}
-.add-field-row input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:15px;outline:none}
-.add-field-row input:focus{border-color:var(--blue)}
-.add-field-row button{padding:8px 14px;background:var(--blue);color:#fff;border-radius:9px;font-weight:600;white-space:nowrap}
+    .tab-btn.active { color: white; border-bottom-color: white; }
 
-/* MODAL / DIALOG */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center}
-.overlay.center{align-items:center}
-.modal{background:#fff;border-radius:18px 18px 0 0;padding:20px 20px 36px;width:100%;max-width:480px;animation:slideUp .25s ease}
-.overlay.center .modal{border-radius:18px;padding:24px;margin:16px}
-@keyframes slideUp{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal h3{font-size:18px;font-weight:700;margin-bottom:16px}
-.modal-actions{display:flex;gap:10px;margin-top:18px}
-.modal-actions button{flex:1;padding:12px;border-radius:10px;font-size:16px;font-weight:600}
-.modal label{display:block;font-size:14px;color:var(--sub);margin-bottom:6px}
-.modal input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:16px;outline:none;margin-bottom:4px}
-.modal input:focus{border-color:var(--blue)}
-.modal-err{color:var(--danger);font-size:13px;height:18px;margin-bottom:8px}
+    /* ===== PANELS ===== */
+    .tab-panel { display: none; padding: 14px 14px 0; }
+    .tab-panel.active { display: block; }
 
-/* DRAG OVER */
-.field-item.drag-over{border-top:2px solid var(--blue)}
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
 
-/* EMPTY STATE */
-.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--sub);gap:10px;padding:40px}
-.empty-state svg{width:56px;height:56px;opacity:.3}
+    .btn:active { opacity: 0.75; }
+    .btn-primary   { background: var(--primary); color: white; }
+    .btn-danger    { background: var(--danger);   color: white; }
+    .btn-secondary { background: #ececec; color: var(--text); }
+    .btn-icon { padding: 8px; min-width: 44px; min-height: 44px; border-radius: 10px; }
+    .btn-sm   { padding: 7px 14px; min-height: 38px; font-size: 13px; }
+    .btn-full { width: 100%; }
 
-/* OVERVIEW */
-#page-overview{overflow-y:hidden}
-.ov-sub-bar{background:var(--white);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.ov-sub-label{font-size:13px;color:var(--sub);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ov-toggle-btn{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;background:var(--blue-light);color:var(--blue);border:1px solid var(--blue);cursor:pointer;white-space:nowrap;flex-shrink:0}
-.ov-filter-panel{background:var(--white);border-bottom:2px solid var(--blue);padding:12px 16px;display:none;flex-direction:column;gap:8px;flex-shrink:0;max-height:220px;overflow-y:auto}
-.ov-filter-panel.open{display:flex}
-.ov-filter-actions{display:flex;gap:8px}
-.ov-filter-actions button{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
-.ucheck-list{display:flex;flex-wrap:wrap;gap:8px}
-.ucheck-label{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;background:var(--gray);border:1px solid var(--border);cursor:pointer;font-size:14px;user-select:none}
-.ucheck-label input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
-.ov-scroll{flex:1;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.ov-table{border-collapse:collapse;table-layout:fixed}
-.ov-table th,.ov-table td{padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:14px;vertical-align:top;word-break:break-word;white-space:pre-wrap}
-.ov-table th:last-child,.ov-table td:last-child{border-right:none}
-.ov-col-label{position:sticky;left:0;z-index:5;background:var(--blue-light);width:80px;min-width:80px;max-width:80px;font-size:12px;color:var(--sub);font-weight:700;text-align:right;padding-right:10px;white-space:normal;word-break:break-all}
-.ov-table thead .ov-col-label{background:var(--blue-dark);color:rgba(255,255,255,.8);z-index:12}
-.ov-table thead th{position:sticky;top:0;z-index:10;background:var(--blue);color:#fff;font-weight:700;text-align:center;white-space:nowrap;min-width:120px;width:120px}
-.ov-table tbody tr:nth-child(even) td{background:#f8fafd}
-.ov-table tbody tr:nth-child(even) .ov-col-label{background:#dce8f5}
-.ov-cell{min-width:120px;width:120px;font-size:14px;line-height:1.5}
-.ov-cell.empty{color:#bbb}
-</style>
+    /* ===== FAB ===== */
+    .fab {
+      position: fixed;
+      bottom: 22px;
+      right: 20px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-size: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(76,175,80,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      -webkit-tap-highlight-color: transparent;
+      line-height: 1;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200;
+      align-items: flex-end;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card-bg);
+      border-radius: 22px 22px 0 0;
+      padding: 22px 18px 34px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 18px; }
+
+    /* ===== FORMS ===== */
+    .form-group { margin-bottom: 14px; }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: var(--text-light);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 13px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+      background: white;
+      -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); }
+
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; }
+
+    .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+    .modal-actions .btn { flex: 1; }
+
+    /* ===== INGREDIENT ITEMS ===== */
+    .ingredient-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+
+    .ingredient-info { flex: 1; min-width: 0; }
+    .ingredient-name { font-size: 16px; font-weight: 600; }
+    .ingredient-detail { font-size: 13px; color: var(--text-light); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .ingredient-qty { font-size: 15px; font-weight: 700; color: var(--text); }
+    .ingredient-actions { display: flex; gap: 6px; margin-left: 10px; }
+
+    /* ===== DISH CARD ===== */
+    .dish-card {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .dish-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .dish-name { font-size: 19px; font-weight: 700; }
+
+    .dish-days-box { text-align: center; background: #E3F2FD; border-radius: 12px; padding: 8px 14px; min-width: 64px; }
+    .days-number { font-size: 26px; font-weight: 800; color: var(--info); line-height: 1; }
+    .days-unit { font-size: 11px; color: #1565C0; font-weight: 600; }
+
+    .dish-stars { font-size: 16px; color: #FFD700; margin-bottom: 8px; }
+    .dish-meta { font-size: 13px; color: var(--text-light); margin-bottom: 10px; }
+
+    .dish-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+
+    /* ===== SERVINGS CONTROL ===== */
+    .servings-control { display: flex; align-items: center; gap: 10px; }
+
+    .servings-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: white;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .servings-value { font-size: 15px; font-weight: 700; min-width: 52px; text-align: center; }
+
+    /* ===== SUMMARY CARD ===== */
+    .summary-card {
+      background: linear-gradient(135deg, #43A047, #2E7D32);
+      color: white;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .summary-days-big { font-size: 48px; font-weight: 800; line-height: 1; }
+    .summary-label { font-size: 14px; opacity: 0.88; margin-top: 4px; }
+    .summary-emoji { font-size: 48px; }
+
+    /* ===== BADGES ===== */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      gap: 4px;
+    }
+
+    .badge-can    { background: #E8F5E9; color: #2E7D32; }
+    .badge-cannot { background: #FFEBEE; color: #C62828; }
+    .badge-gray   { background: #f0f0f0; color: #555; }
+    .badge-blue   { background: #E3F2FD; color: #1565C0; }
+
+    /* ===== TAGS ===== */
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 12px; font-weight: 600; }
+    .tag-cold   { background: #E3F2FD; color: #1565C0; }
+    .tag-frozen { background: #EDE7F6; color: #4527A0; }
+    .tag-room   { background: #E8F5E9; color: #2E7D32; }
+    .tag-cat    { background: #FFF3E0; color: #E65100; }
+
+    /* ===== PRIORITY ===== */
+    .pri-high { background: #FFEBEE; color: #C62828; }
+    .pri-mid  { background: #FFF8E1; color: #F57F17; }
+    .pri-low  { background: #F5F5F5; color: #616161; }
+
+    /* ===== REQUEST ITEM ===== */
+    .request-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+
+    .request-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+    .request-name { font-size: 16px; font-weight: 600; flex: 1; }
+    .request-name.done { text-decoration: line-through; color: var(--text-light); }
+    .request-footer { display: flex; justify-content: space-between; align-items: center; }
+
+    .req-checks { display: flex; gap: 18px; }
+
+    .req-check-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .req-check-label input { width: 20px; height: 20px; accent-color: var(--primary); cursor: pointer; }
+
+    /* ===== SHOPPING ITEM ===== */
+    .shopping-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      transition: opacity 0.2s;
+    }
+
+    .shopping-item.checked { opacity: 0.55; }
+    .shopping-item.checked .shopping-name { text-decoration: line-through; }
+    .shopping-name { flex: 1; font-size: 16px; font-weight: 500; }
+    .checkbox-large { width: 24px; height: 24px; cursor: pointer; accent-color: var(--primary); flex-shrink: 0; }
+
+    /* ===== DISH INGREDIENT TAGS ===== */
+    .ing-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+    .ing-tag {
+      background: var(--primary);
+      color: white;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ing-tag-remove { cursor: pointer; font-size: 16px; line-height: 1; opacity: 0.8; }
+
+    /* ===== STAR INPUT ===== */
+    .star-input { display: flex; gap: 10px; font-size: 32px; padding: 4px 0; }
+    .star-input span { cursor: pointer; color: #ddd; transition: color 0.15s; }
+    .star-input span.active { color: #FFD700; }
+
+    /* ===== FILTER CHIPS ===== */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .filter-row::-webkit-scrollbar { display: none; }
+
+    .filter-chip {
+      padding: 7px 16px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 36px;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* ===== SECTION HEADER ===== */
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .section-title { font-size: 15px; font-weight: 700; }
+
+    /* ===== AUTO ADD BUTTON ===== */
+    .auto-add-btn {
+      width: 100%;
+      background: #E8F4FD;
+      color: var(--info);
+      border: 1.5px solid #BBDEFB;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 12px;
+      min-height: 48px;
+      font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state { text-align: center; padding: 44px 20px; color: var(--text-light); }
+    .empty-icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; font-weight: 600; }
+    .empty-sub  { font-size: 13px; margin-top: 6px; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 88px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30,30,30,0.9);
+      color: white;
+      padding: 11px 22px;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 400;
+      opacity: 0;
+      transition: opacity 0.25s;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
 </head>
 <body>
 
-<!-- PIN SCREEN -->
-<div id="pinScreen">
-  <h1>リーディング</h1>
-  <div id="pinDots">
-    <div class="pin-dot" id="d0"></div>
-    <div class="pin-dot" id="d1"></div>
-    <div class="pin-dot" id="d2"></div>
-    <div class="pin-dot" id="d3"></div>
-  </div>
-  <div id="pinError">&nbsp;</div>
-  <div id="pinPad">
-    <button class="pin-btn" onclick="pinInput('1')">1</button>
-    <button class="pin-btn" onclick="pinInput('2')">2</button>
-    <button class="pin-btn" onclick="pinInput('3')">3</button>
-    <button class="pin-btn" onclick="pinInput('4')">4</button>
-    <button class="pin-btn" onclick="pinInput('5')">5</button>
-    <button class="pin-btn" onclick="pinInput('6')">6</button>
-    <button class="pin-btn" onclick="pinInput('7')">7</button>
-    <button class="pin-btn" onclick="pinInput('8')">8</button>
-    <button class="pin-btn" onclick="pinInput('9')">9</button>
-    <button class="pin-btn empty"></button>
-    <button class="pin-btn" onclick="pinInput('0')">0</button>
-    <button class="pin-btn del" onclick="pinDel()">⌫</button>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-
-  <!-- PAGE: USERS LIST -->
-  <div class="page" id="page-users">
-    <div class="header">
-      <h2>利用者一覧</h2>
-    </div>
-    <div class="search-bar">
-      <input type="search" id="userSearch" placeholder="名前で検索…" oninput="renderUserList()" autocomplete="off">
-    </div>
-    <div class="day-filter" id="dayFilter"></div>
-    <div class="user-list" id="userList"></div>
-    <button class="fab" onclick="openAddUser()">＋</button>
-  </div>
-
-  <!-- PAGE: USER DETAIL -->
-  <div class="page" id="page-userDetail">
-    <div class="header">
-      <button class="back-btn" onclick="showPage('users')">‹</button>
-      <h2 id="detailHeaderName">利用者詳細</h2>
-      <button class="edit-btn" id="detailEditToggleBtn" onclick="toggleDetailEdit()">編集</button>
-    </div>
-    <div id="detailContent"></div>
-  </div>
-
-  <!-- PAGE: OVERVIEW -->
-  <div class="page" id="page-overview">
-    <div class="header">
-      <h2>個人情報一覧</h2>
-    </div>
-    <div class="ov-sub-bar">
-      <span class="ov-sub-label" id="ovSubLabel"></span>
-      <button class="ov-toggle-btn" onclick="toggleOvPanel('user')">人 ▾</button>
-      <button class="ov-toggle-btn" onclick="toggleOvPanel('field')">項目 ▾</button>
-    </div>
-    <div class="ov-filter-panel" id="ovUserPanel">
-      <div class="ov-filter-actions">
-        <button class="btn-blue" onclick="ovCheckAll()">全選択</button>
-        <button class="btn-gray" onclick="ovUncheckAll()">全解除</button>
-        <button class="btn-blue" style="margin-left:auto" onclick="applyOvPanel()">適用</button>
-      </div>
-      <div class="ucheck-list" id="ovCheckList"></div>
-    </div>
-    <div class="ov-filter-panel" id="ovFieldPanel">
-      <div class="ov-filter-actions">
-        <button class="btn-blue" onclick="ovFieldAll()">全選択</button>
-        <button class="btn-gray" onclick="ovFieldNone()">全解除</button>
-        <button class="btn-blue" style="margin-left:auto" onclick="applyOvPanel()">適用</button>
-      </div>
-      <div class="ucheck-list" id="ovFieldCheckList"></div>
-    </div>
-    <div class="ov-scroll" id="ovScroll">
-      <table class="ov-table" id="ovTable"></table>
+<header class="app-header">
+  <div class="app-title-row">
+    <div class="app-title">🍱 こんだて管理</div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="exportData()">📤 書き出し</button>
+      <label class="header-btn" style="cursor:pointer">
+        📥 読み込み
+        <input type="file" accept=".json" onchange="importData(event)" style="display:none">
+      </label>
     </div>
   </div>
-
-  <!-- PAGE: MANUAL -->
-  <div class="page" id="page-manual">
-    <div class="header">
-      <h2>マニュアル</h2>
-      <button class="btn-icon" onclick="openAddManual()" title="追加">＋</button>
-    </div>
-    <div class="manual-list" id="manualList"></div>
-  </div>
-
-  <!-- PAGE: SETTINGS -->
-  <div class="page" id="page-settings">
-    <div class="header">
-      <h2>設定</h2>
-    </div>
-    <div class="settings-body">
-      <!-- PIN -->
-      <div class="settings-section">
-        <div class="settings-section-title">セキュリティ</div>
-        <div class="settings-row">
-          <span class="settings-row-label">PINコード変更</span>
-          <button class="settings-row-btn btn-blue" onclick="openPinChange()">変更</button>
-        </div>
-      </div>
-      <!-- FIELDS -->
-      <div class="settings-section">
-        <div class="settings-section-title">個人ページの項目</div>
-        <div id="fieldsList"></div>
-        <div class="add-field-row">
-          <input type="text" id="newFieldInput" placeholder="新しい項目名" maxlength="30">
-          <button onclick="addField()">追加</button>
-        </div>
-      </div>
-      <!-- DANGER -->
-      <div class="settings-section">
-        <div class="settings-section-title">データ管理</div>
-        <div class="settings-row">
-          <span class="settings-row-label">全データを削除</span>
-          <button class="settings-row-btn btn-red" onclick="confirmDeleteAll()">削除</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- BOTTOM NAV -->
-  <nav id="bottomNav">
-    <button class="nav-btn active" id="nav-users" onclick="showPage('users')">
-      <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="18" cy="9" r="3"/><path d="M21 21v-1.5a3 3 0 0 0-2-2.83"/></svg>
-      利用者
-    </button>
-    <button class="nav-btn" id="nav-overview" onclick="showPage('overview')">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      一覧
-    </button>
-    <button class="nav-btn" id="nav-manual" onclick="showPage('manual')">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
-      マニュアル
-    </button>
-    <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      設定
-    </button>
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('ingredients')">🥬 食材</button>
+    <button class="tab-btn" onclick="switchTab('dishes')">🍳 料理</button>
+    <button class="tab-btn" onclick="switchTab('requests')">📝 リクエスト</button>
+    <button class="tab-btn" onclick="switchTab('shopping')">🛒 買い物</button>
   </nav>
+</header>
+
+<main>
+  <!-- Tab: 食材リスト -->
+  <div id="tab-ingredients" class="tab-panel active">
+    <div class="filter-row" id="ing-filter-row"></div>
+    <div id="ingredients-list"></div>
+  </div>
+
+  <!-- Tab: 料理リスト -->
+  <div id="tab-dishes" class="tab-panel">
+    <div id="dishes-summary"></div>
+    <div id="dishes-list"></div>
+  </div>
+
+  <!-- Tab: リクエスト -->
+  <div id="tab-requests" class="tab-panel">
+    <div class="section-header">
+      <span class="section-title">リクエスト一覧</span>
+      <label style="font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px; cursor:pointer;">
+        <input type="checkbox" id="hide-done" onchange="renderRequests()" style="width:18px;height:18px;accent-color:var(--primary)">
+        完了を隠す
+      </label>
+    </div>
+    <div id="requests-list"></div>
+  </div>
+
+  <!-- Tab: 買い物リスト -->
+  <div id="tab-shopping" class="tab-panel">
+    <button class="auto-add-btn" onclick="autoAddMissing()">🔍 不足食材を買い物リストに自動追加</button>
+    <div class="section-header">
+      <span class="section-title">買い物リスト</span>
+      <button class="btn btn-sm btn-secondary" onclick="clearChecked()">購入済みを処理</button>
+    </div>
+    <div id="shopping-list"></div>
+  </div>
+</main>
+
+<button class="fab" onclick="openAddModal()">＋</button>
+
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal-content"></div>
 </div>
 
-<!-- OVERLAY CONTAINER -->
-<div id="overlayContainer"></div>
+<div class="toast" id="toast"></div>
 
 <script>
-// ============================================================
-// DATA
-// ============================================================
-const DEFAULT_FIELDS = [
-  {id:'drink',   name:'飲み物'},
-  {id:'bath',    name:'入浴'},
-  {id:'tooth',   name:'歯ブラシ'},
-  {id:'machine', name:'マシン'},
-  {id:'brain',   name:'脳トレ'},
-  {id:'toilet',  name:'トイレ'},
-  {id:'health',  name:'健康・医療情報'},
-  {id:'plan',    name:'支援計画・目標'},
-  {id:'care',    name:'介助メモ'},
-  {id:'hobby',   name:'趣味・好きなこと・話題'},
-];
+/* ===================== STATE ===================== */
+let data = { ingredients: [], dishes: [], requests: [], shopping_list: [] };
+let currentTab = 'ingredients';
+let editingId = null;
+let ingFilter = 'all';
+let selectedStars = 3;
+let dishIngredients = [];
 
-function getData(key, def){ try{const v=localStorage.getItem(key);return v?JSON.parse(v):def;}catch{return def;} }
-function setData(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+const STORAGE_KEY = 'konndate-v1';
 
-function getPin(){ return localStorage.getItem('pin')||'1234'; }
-function setPin(p){ localStorage.setItem('pin',p); }
-function getUsers(){ return getData('users',[]); }
-function setUsers(u){ setData('users',u); }
-function sortedUsers(){ return getUsers().slice().sort((a,b)=>{ const ra=(a.reading||a.name||''); const rb=(b.reading||b.name||''); return ra.localeCompare(rb,'ja'); }); }
-function getUserOrder(){ return getData('userOrder',[]); }
-function setUserOrder(o){ setData('userOrder',o); }
-function orderedUsers(){
-  const users=getUsers(), order=getUserOrder(), result=[];
-  order.forEach(id=>{ const u=users.find(x=>x.id===id); if(u) result.push(u); });
-  const remaining=users.filter(u=>!order.includes(u.id));
-  remaining.sort((a,b)=>(a.reading||a.name||'').localeCompare(b.reading||b.name||'','ja'));
-  return [...result,...remaining];
-}
-function getFields(){ return getData('fields', DEFAULT_FIELDS.map(f=>({...f}))); }
-function setFields(f){ setData('fields',f); }
-function getManuals(){ return getData('manuals',[]); }
-function setManuals(m){ setData('manuals',m); }
+/* ===================== DATA ===================== */
 
-// ============================================================
-// PIN
-// ============================================================
-let pinEntry = '';
-function pinInput(d){
-  if(pinEntry.length>=4) return;
-  pinEntry += d;
-  updatePinDots();
-  if(pinEntry.length===4) setTimeout(checkPin,120);
-}
-function pinDel(){
-  pinEntry = pinEntry.slice(0,-1);
-  updatePinDots();
-}
-function updatePinDots(){
-  for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i<pinEntry.length);
-}
-function checkPin(){
-  if(pinEntry===getPin()){
-    document.getElementById('pinScreen').style.display='none';
-    document.getElementById('app').classList.add('visible');
-    showPage('users');
-  } else {
-    document.getElementById('pinError').textContent='PINが違います';
-    pinEntry='';
-    updatePinDots();
-    setTimeout(()=>document.getElementById('pinError').textContent='\u00a0',1500);
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) data = JSON.parse(saved);
+  } catch {
+    /* 初回 or 破損時はデフォルト値のまま */
   }
+  renderAll();
 }
 
-// ============================================================
-// PAGES
-// ============================================================
-let currentPage='users';
-function showPage(name){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  const nb = document.getElementById('nav-'+name);
-  if(nb) nb.classList.add('active');
-  currentPage=name;
-  if(name==='users') renderUserList();
-  if(name==='overview') renderOverview();
-  if(name==='manual') renderManualList();
-  if(name==='settings') renderSettings();
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-// ============================================================
-// USERS LIST
-// ============================================================
-const DAYS = ['月','火','水','木','金','土','日'];
-const TODAY_IDX = [0,1,2,3,4,5,6][[0,1,2,3,4,5,6].findIndex((_,i)=>i===(new Date().getDay()+6)%7)];
-const TODAY_DAY = DAYS[TODAY_IDX];
-let dayFilter = TODAY_DAY;
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'konndate-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('データを書き出しました 📤');
+}
 
-function renderDayFilter(){
-  const bar = document.getElementById('dayFilter');
-  bar.innerHTML = ['全員',...DAYS].map(d=>{
-    const isToday = d === TODAY_DAY;
-    const isActive = d === dayFilter || (d==='全員' && !dayFilter);
-    return `<button class="df-btn${isActive?' active':''}${isToday&&d!=='全員'?' today':''}" onclick="setDayFilter('${d}')">${d==='全員'?d:d+'曜日'}${isToday&&d!=='全員'?' ★':''}</button>`;
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.ingredients || !imported.dishes) throw new Error();
+      if (!confirm('現在のデータを上書きしてインポートしますか？')) return;
+      data = imported;
+      saveData();
+      renderAll();
+      showToast('インポートしました ✅');
+    } catch {
+      showToast('⚠️ 読み込み失敗：正しいJSONファイルか確認してください');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function nextId(arr) {
+  return arr.length === 0 ? 1 : Math.max(...arr.map(x => x.id)) + 1;
+}
+
+/* ===================== TABS ===================== */
+
+function switchTab(tab) {
+  currentTab = tab;
+  const tabs = ['ingredients', 'dishes', 'requests', 'shopping'];
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderCurrent();
+}
+
+function renderAll() {
+  renderIngredients();
+  renderDishes();
+  renderRequests();
+  renderShopping();
+}
+
+function renderCurrent() {
+  ({ ingredients: renderIngredients, dishes: renderDishes, requests: renderRequests, shopping: renderShopping })[currentTab]?.();
+}
+
+/* ===================== INGREDIENTS ===================== */
+
+const STORAGE_TAG   = { '冷蔵': 'tag-cold', '冷凍': 'tag-frozen', '常温': 'tag-room' };
+const STORAGE_EMOJI = { '冷蔵': '❄️', '冷凍': '🧊', '常温': '🌡️' };
+
+function renderIngredients() {
+  const categories = ['all', ...new Set(data.ingredients.map(i => i.category).filter(Boolean))];
+  document.getElementById('ing-filter-row').innerHTML = categories.map(c =>
+    `<button class="filter-chip ${ingFilter === c ? 'active' : ''}" onclick="setIngFilter('${esc(c)}')">${c === 'all' ? 'すべて' : esc(c)}</button>`
+  ).join('');
+
+  const filtered = ingFilter === 'all'
+    ? data.ingredients
+    : data.ingredients.filter(i => i.category === ingFilter);
+
+  const list = document.getElementById('ingredients-list');
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🥬</div><div class="empty-text">食材がありません</div><div class="empty-sub">右下の ＋ ボタンで追加</div></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(ing => `
+    <div class="ingredient-item">
+      <div class="ingredient-info">
+        <div class="ingredient-name">${esc(ing.name)}</div>
+        <div class="ingredient-detail">
+          <span class="tag ${STORAGE_TAG[ing.storage] || 'tag-room'}">${STORAGE_EMOJI[ing.storage] || ''} ${esc(ing.storage || '')}</span>
+          ${ing.category ? `<span class="tag tag-cat">${esc(ing.category)}</span>` : ''}
+          <span class="ingredient-qty">${ing.quantity} ${esc(ing.unit || '')}</span>
+        </div>
+      </div>
+      <div class="ingredient-actions">
+        <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditIngredient(${ing.id})">✏️</button>
+        <button class="btn btn-danger btn-icon btn-sm" onclick="deleteIngredient(${ing.id})">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setIngFilter(cat) { ingFilter = cat; renderIngredients(); }
+
+function openAddIngredient() { editingId = null; openModal('ingredient', null); }
+
+function openEditIngredient(id) {
+  editingId = id;
+  openModal('ingredient', data.ingredients.find(i => i.id === id));
+}
+
+function deleteIngredient(id) {
+  if (!confirm('この食材を削除しますか？')) return;
+  data.ingredients = data.ingredients.filter(i => i.id !== id);
+  saveData();
+  renderIngredients();
+  showToast('削除しました');
+}
+
+/* ===================== DISHES ===================== */
+
+function canMakeCheck(dish) {
+  const missing = dish.required_ingredients.filter(name => {
+    const ing = data.ingredients.find(i => i.name === name);
+    return !ing || ing.quantity <= 0;
+  });
+  return { canMake: missing.length === 0, missing };
+}
+
+function daysRemaining(dish) {
+  return Math.floor((dish.servings_remaining || 0) / 2);
+}
+
+function renderDishes() {
+  const totalDays = data.dishes.reduce((s, d) => s + daysRemaining(d), 0);
+
+  document.getElementById('dishes-summary').innerHTML = `
+    <div class="summary-card">
+      <div>
+        <div class="summary-days-big">${totalDays}</div>
+        <div class="summary-label">合計 ${totalDays} 日分の食材があります</div>
+      </div>
+      <div class="summary-emoji">📅</div>
+    </div>
+  `;
+
+  const list = document.getElementById('dishes-list');
+  if (data.dishes.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🍳</div><div class="empty-text">料理が登録されていません</div><div class="empty-sub">右下の ＋ ボタンで追加</div></div>`;
+    return;
+  }
+
+  list.innerHTML = data.dishes.map(dish => {
+    const { canMake, missing } = canMakeCheck(dish);
+    const days = daysRemaining(dish);
+    const stars = '★'.repeat(dish.stars || 0) + '☆'.repeat(3 - (dish.stars || 0));
+
+    return `
+      <div class="dish-card">
+        <div class="dish-header">
+          <div>
+            <div class="dish-name">${esc(dish.name)}</div>
+            <div class="dish-stars">${stars}</div>
+          </div>
+          <div class="dish-days-box">
+            <div class="days-number">${days}</div>
+            <div class="days-unit">日分</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          ${canMake
+            ? `<span class="badge badge-can">✅ 今すぐ作れる</span>`
+            : `<span class="badge badge-cannot">❌ ${missing.map(m => esc(m)).join('・')} が不足</span>`}
+        </div>
+
+        <div class="dish-meta">
+          必要食材：${dish.required_ingredients.length ? dish.required_ingredients.map(n => esc(n)).join('、') : 'なし'}
+        </div>
+
+        <div class="dish-footer">
+          <div class="servings-control">
+            <button class="servings-btn" onclick="changeServings(${dish.id}, -1)">−</button>
+            <div class="servings-value">${dish.servings_remaining || 0} 食分</div>
+            <button class="servings-btn" onclick="changeServings(${dish.id}, +1)">＋</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="openEditDish(${dish.id})">✏️ 編集</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDish(${dish.id})">🗑</button>
+          </div>
+        </div>
+      </div>
+    `;
   }).join('');
 }
 
-function setDayFilter(d){
-  dayFilter = d==='全員' ? null : d;
-  renderDayFilter();
-  renderUserList();
+function changeServings(id, delta) {
+  const dish = data.dishes.find(d => d.id === id);
+  if (!dish) return;
+  dish.servings_remaining = Math.max(0, (dish.servings_remaining || 0) + delta);
+  saveData();
+  renderDishes();
 }
 
-function renderUserList(){
-  renderDayFilter();
-  const q = (document.getElementById('userSearch').value||'').trim().toLowerCase();
-  const users = orderedUsers();
-  const list = document.getElementById('userList');
-  let filtered = users;
-  if(dayFilter) filtered = filtered.filter(u=>(u.days||[]).includes(dayFilter));
-  if(q) filtered = filtered.filter(u=>u.name.toLowerCase().includes(q)||(u.reading||'').includes(q));
-  const emptyMsg = dayFilter ? `${dayFilter}曜日の利用者はいません` : (q?'該当なし':'利用者を追加してください');
-  if(!filtered.length){
-    list.innerHTML=`<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg><span>${emptyMsg}</span></div>`;
+function openAddDish() { editingId = null; dishIngredients = []; selectedStars = 3; openModal('dish', null); }
+
+function openEditDish(id) {
+  editingId = id;
+  const dish = data.dishes.find(d => d.id === id);
+  dishIngredients = [...(dish.required_ingredients || [])];
+  selectedStars = dish.stars || 3;
+  openModal('dish', dish);
+}
+
+function deleteDish(id) {
+  if (!confirm('この料理を削除しますか？')) return;
+  data.dishes = data.dishes.filter(d => d.id !== id);
+  saveData();
+  renderDishes();
+  showToast('削除しました');
+}
+
+/* ===================== REQUESTS ===================== */
+
+const PRI_CLASS = { '高': 'pri-high', '中': 'pri-mid', '低': 'pri-low' };
+
+function renderRequests() {
+  const hideDone = document.getElementById('hide-done')?.checked;
+  const items = hideDone ? data.requests.filter(r => !r.done) : data.requests;
+  const list = document.getElementById('requests-list');
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div class="empty-text">リクエストがありません</div><div class="empty-sub">右下の ＋ ボタンで追加</div></div>`;
     return;
   }
-  list.innerHTML = filtered.map(u=>`
-    <div class="user-card" data-uid="${u.id}" onclick="openUser('${u.id}')">
-      <div class="user-avatar">${u.name.charAt(0)}</div>
-      <div class="user-info">
-        <div class="user-name">${esc(u.name)}</div>
-        <div class="user-sub">${esc(u.reading||'')}${u.age?'　'+u.age+'歳':''}${u.gender?'　'+u.gender:''}</div>
+
+  list.innerHTML = items.map(req => `
+    <div class="request-item">
+      <div class="request-header">
+        <span class="request-name ${req.done ? 'done' : ''}">${esc(req.name)}</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <span class="badge ${PRI_CLASS[req.priority] || 'badge-gray'}">${esc(req.priority || '中')}</span>
+          <button class="btn btn-secondary btn-icon btn-sm" onclick="openEditRequest(${req.id})">✏️</button>
+          <button class="btn btn-danger btn-icon btn-sm" onclick="deleteRequest(${req.id})">🗑</button>
+        </div>
       </div>
-    </div>`).join('');
-  setupUserDrag();
+      <div class="request-footer">
+        <div class="req-checks">
+          <label class="req-check-label">
+            <input type="checkbox" ${req.checked_N ? 'checked' : ''} onchange="toggleReqCheck(${req.id},'N',this.checked)">
+            N
+          </label>
+          <label class="req-check-label">
+            <input type="checkbox" ${req.checked_Y ? 'checked' : ''} onchange="toggleReqCheck(${req.id},'Y',this.checked)">
+            Y
+          </label>
+        </div>
+        <label style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;cursor:pointer">
+          <input type="checkbox" ${req.done ? 'checked' : ''} onchange="toggleReqDone(${req.id},this.checked)" style="width:18px;height:18px;accent-color:var(--primary)">
+          完了
+        </label>
+      </div>
+    </div>
+  `).join('');
 }
 
-let _ucDragEl=null,_ucTimer=null,_ucActive=false;
-function setupUserDrag(){
-  const list=document.getElementById('userList');
-  if(!list||list._dragSetup) return;
-  list._dragSetup=true;
-  list.addEventListener('touchstart',e=>{
-    const card=e.target.closest('.user-card[data-uid]');
-    if(!card) return;
-    _ucTimer=setTimeout(()=>{
-      _ucActive=true; _ucDragEl=card;
-      card.classList.add('dragging');
-      if(navigator.vibrate) navigator.vibrate(40);
-    },500);
-  },{passive:true});
-  list.addEventListener('touchmove',e=>{
-    if(!_ucActive){clearTimeout(_ucTimer);_ucTimer=null;return;}
-    e.preventDefault();
-    const t=e.touches[0];
-    _ucDragEl.style.pointerEvents='none';
-    const el=document.elementFromPoint(t.clientX,t.clientY);
-    _ucDragEl.style.pointerEvents='';
-    const tgt=el&&el.closest('.user-card[data-uid]');
-    list.querySelectorAll('.user-card').forEach(c=>c.classList.remove('drag-top','drag-bot'));
-    if(tgt&&tgt!==_ucDragEl){
-      const r=tgt.getBoundingClientRect();
-      tgt.classList.add(t.clientY<r.top+r.height/2?'drag-top':'drag-bot');
-    }
-  },{passive:false});
-  list.addEventListener('touchend',e=>{
-    clearTimeout(_ucTimer);_ucTimer=null;
-    if(!_ucActive){_ucActive=false;return;}
-    _ucActive=false;
-    if(!_ucDragEl) return;
-    _ucDragEl.classList.remove('dragging');
-    const cards=[...list.querySelectorAll('.user-card[data-uid]')];
-    let tgt=null,before=true;
-    cards.forEach(c=>{
-      if(c.classList.contains('drag-top')){tgt=c;before=true;}
-      if(c.classList.contains('drag-bot')){tgt=c;before=false;}
-      c.classList.remove('drag-top','drag-bot');
-    });
-    if(tgt&&tgt!==_ucDragEl){
-      const ids=cards.map(c=>c.dataset.uid);
-      const fi=ids.indexOf(_ucDragEl.dataset.uid);
-      ids.splice(fi,1);
-      const ti=ids.indexOf(tgt.dataset.uid);
-      ids.splice(before?ti:ti+1,0,_ucDragEl.dataset.uid);
-      const allIds=getUsers().map(u=>u.id);
-      setUserOrder([...ids,...allIds.filter(id=>!ids.includes(id))]);
-      renderUserList();
-    }
-    _ucDragEl=null;
-  },{passive:true});
-  list.addEventListener('touchcancel',()=>{
-    clearTimeout(_ucTimer);_ucTimer=null;
-    if(_ucDragEl) _ucDragEl.classList.remove('dragging');
-    list.querySelectorAll('.user-card').forEach(c=>c.classList.remove('drag-top','drag-bot'));
-    _ucDragEl=null;_ucActive=false;
-  },{passive:true});
+function toggleReqCheck(id, person, val) {
+  const req = data.requests.find(r => r.id === id);
+  if (!req) return;
+  req[person === 'N' ? 'checked_N' : 'checked_Y'] = val;
+  saveData();
 }
 
-function openAddUser(){
-  showModal(`
-    <h3>利用者を追加</h3>
-    <label>氏名 <span style="color:red">*</span></label>
-    <input id="mu_name" placeholder="例：山田 太郎" autofocus>
-    <div class="modal-err" id="mu_err">&nbsp;</div>
+function toggleReqDone(id, val) {
+  const req = data.requests.find(r => r.id === id);
+  if (!req) return;
+  req.done = val;
+  saveData();
+  renderRequests();
+}
+
+function deleteRequest(id) {
+  if (!confirm('このリクエストを削除しますか？')) return;
+  data.requests = data.requests.filter(r => r.id !== id);
+  saveData();
+  renderRequests();
+  showToast('削除しました');
+}
+
+function openAddRequest() { editingId = null; openModal('request', null); }
+
+function openEditRequest(id) {
+  editingId = id;
+  openModal('request', data.requests.find(r => r.id === id));
+}
+
+/* ===================== SHOPPING ===================== */
+
+function renderShopping() {
+  const list = document.getElementById('shopping-list');
+  if (data.shopping_list.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-text">買い物リストが空です</div><div class="empty-sub">右下の ＋ で手動追加、上のボタンで自動追加</div></div>`;
+    return;
+  }
+
+  list.innerHTML = data.shopping_list.map(item => `
+    <div class="shopping-item ${item.checked ? 'checked' : ''}">
+      <input type="checkbox" class="checkbox-large" ${item.checked ? 'checked' : ''} onchange="toggleShop(${item.id},this.checked)">
+      <span class="shopping-name">${esc(item.name)}</span>
+      ${item.auto_added ? `<span class="badge badge-blue" style="font-size:11px">自動</span>` : ''}
+      <button class="btn btn-danger btn-icon btn-sm" onclick="deleteShopItem(${item.id})">🗑</button>
+    </div>
+  `).join('');
+}
+
+function toggleShop(id, checked) {
+  const item = data.shopping_list.find(i => i.id === id);
+  if (!item) return;
+  item.checked = checked;
+  saveData();
+  renderShopping();
+}
+
+function deleteShopItem(id) {
+  data.shopping_list = data.shopping_list.filter(i => i.id !== id);
+  saveData();
+  renderShopping();
+}
+
+function clearChecked() {
+  const done = data.shopping_list.filter(i => i.checked);
+  if (done.length === 0) { showToast('購入済みアイテムがありません'); return; }
+
+  const addToList = confirm(`購入済み ${done.length} 件を食材リストに追加しますか？\nキャンセルすると削除のみします。`);
+  if (addToList) {
+    for (const item of done) {
+      const existing = data.ingredients.find(i => i.name === item.name);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        data.ingredients.push({ id: nextId(data.ingredients), name: item.name, category: '', quantity: 1, unit: '個', storage: '常温' });
+      }
+    }
+  }
+  data.shopping_list = data.shopping_list.filter(i => !i.checked);
+  saveData();
+  renderAll();
+  showToast(addToList ? '食材リストに追加しました ✅' : '購入済みを削除しました');
+}
+
+function autoAddMissing() {
+  const missing = new Set();
+  for (const dish of data.dishes) {
+    for (const name of dish.required_ingredients) {
+      const ing = data.ingredients.find(i => i.name === name);
+      if (!ing || ing.quantity <= 0) missing.add(name);
+    }
+  }
+  if (missing.size === 0) { showToast('不足食材はありません ✅'); return; }
+
+  let added = 0;
+  for (const name of missing) {
+    if (!data.shopping_list.find(i => i.name === name && !i.checked)) {
+      data.shopping_list.push({ id: nextId(data.shopping_list), name, checked: false, auto_added: true });
+      added++;
+    }
+  }
+  saveData();
+  renderShopping();
+  showToast(`${added} 件の不足食材を追加しました`);
+}
+
+function openAddShopping() { editingId = null; openModal('shopping', null); }
+
+/* ===================== MODAL ===================== */
+
+function openAddModal() {
+  const openers = { ingredients: openAddIngredient, dishes: openAddDish, requests: openAddRequest, shopping: openAddShopping };
+  openers[currentTab]?.();
+}
+
+function openModal(type, item) {
+  const builders = { ingredient: buildIngredientForm, dish: buildDishForm, request: buildRequestForm, shopping: buildShoppingForm };
+  document.getElementById('modal-content').innerHTML = builders[type](item);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === e.currentTarget) closeModal(); }
+
+/* --- Ingredient Form --- */
+function buildIngredientForm(item) {
+  const v = item || { name: '', category: '', quantity: 1, unit: '個', storage: '冷蔵' };
+  return `
+    <div class="modal-title">${item ? '食材を編集' : '食材を追加'}</div>
+    <div class="form-group">
+      <label class="form-label">食材名 *</label>
+      <input class="form-input" id="ing-name" type="text" value="${esc(v.name)}" placeholder="例: 鶏むね肉" autofocus>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">カテゴリ</label>
+        <input class="form-input" id="ing-category" type="text" value="${esc(v.category || '')}" placeholder="例: 肉類" list="cat-list">
+        <datalist id="cat-list">
+          ${[...new Set(data.ingredients.map(i => i.category).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('')}
+        </datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label">保存場所</label>
+        <select class="form-select" id="ing-storage">
+          <option ${v.storage === '冷蔵' ? 'selected' : ''}>冷蔵</option>
+          <option ${v.storage === '冷凍' ? 'selected' : ''}>冷凍</option>
+          <option ${v.storage === '常温' ? 'selected' : ''}>常温</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">数量</label>
+        <input class="form-input" id="ing-quantity" type="number" value="${v.quantity}" min="0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">単位</label>
+        <input class="form-input" id="ing-unit" type="text" value="${esc(v.unit || '')}" placeholder="例: 枚">
+      </div>
+    </div>
     <div class="modal-actions">
-      <button class="btn-gray" onclick="closeModal()">キャンセル</button>
-      <button class="btn-blue" onclick="saveNewUser()">追加</button>
-    </div>`);
-  setTimeout(()=>document.getElementById('mu_name').focus(),100);
-}
-function saveNewUser(){
-  const name = document.getElementById('mu_name').value.trim();
-  if(!name){ document.getElementById('mu_err').textContent='氏名を入力してください'; return; }
-  const users = getUsers();
-  const id = 'u'+Date.now();
-  users.push({id, name, reading:'', age:'', gender:'', days:[], fields:{}});
-  setUsers(users);
-  closeModal();
-  openUser(id);
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveIngredient()">保存</button>
+    </div>
+  `;
 }
 
-// ============================================================
-// USER DETAIL
-// ============================================================
-let detailUserId = null;
-let detailEditMode = false;
+function saveIngredient() {
+  const name = document.getElementById('ing-name').value.trim();
+  if (!name) { showToast('食材名を入力してください'); return; }
 
-function openUser(id){
-  detailUserId = id;
-  detailEditMode = false;
-  showPage('userDetail');
-  document.getElementById('nav-users').classList.add('active');
-  renderDetail();
-}
+  const item = {
+    name,
+    category: document.getElementById('ing-category').value.trim(),
+    quantity: parseFloat(document.getElementById('ing-quantity').value) || 0,
+    unit: document.getElementById('ing-unit').value.trim(),
+    storage: document.getElementById('ing-storage').value,
+  };
 
-function renderDetail(){
-  const users = getUsers();
-  const u = users.find(x=>x.id===detailUserId);
-  if(!u) return;
-  const fields = getFields();
-  document.getElementById('detailHeaderName').textContent = u.name;
-  document.getElementById('detailEditToggleBtn').textContent = detailEditMode ? '完了' : '編集';
-
-  let html = '';
-  if(detailEditMode){
-    html += `<div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">基本情報</div>
-        <div class="detail-row"><span class="detail-label">氏名</span><input class="edit-input" id="e_name" value="${esc(u.name)}"></div>
-        <div class="detail-row"><span class="detail-label">よみがな</span><input class="edit-input" id="e_reading" value="${esc(u.reading||'')}"></div>
-        <div class="detail-row"><span class="detail-label">年齢</span><input class="edit-input" id="e_age" value="${esc(u.age||'')}" type="number" min="0" max="120" style="max-width:100px"></div>
-        <div class="detail-row"><span class="detail-label">性別</span>
-          <select class="edit-input" id="e_gender" style="max-width:120px">
-            <option value="">未設定</option>
-            <option value="男" ${u.gender==='男'?'selected':''}>男</option>
-            <option value="女" ${u.gender==='女'?'selected':''}>女</option>
-            <option value="その他" ${u.gender==='その他'?'selected':''}>その他</option>
-          </select>
-        </div>
-        <div class="detail-row"><span class="detail-label">利用曜日</span>
-          <div class="days-picker">${['月','火','水','木','金','土','日'].map(d=>`<button class="day-btn ${(u.days||[]).includes(d)?'selected':''}" onclick="toggleDay(this,'${d}')" data-day="${d}">${d}</button>`).join('')}</div>
-        </div>
-      </div>`;
-    if(fields.length){
-      html += `<div class="detail-section"><div class="detail-section-title">詳細情報</div>`;
-      fields.forEach(f=>{
-        const val = (u.fields||{})[f.id]||'';
-        html += `<div class="detail-row"><span class="detail-label" style="width:auto;min-width:80px;margin-right:8px">${esc(f.name)}</span><textarea class="edit-input" id="ef_${f.id}" rows="2">${esc(val)}</textarea></div>`;
-      });
-      html += `</div>`;
-    }
-    html += `<div style="padding:8px 0 4px;display:flex;gap:10px">
-      <button class="edit-btn" onclick="saveDetail()">保存</button>
-      <button class="edit-btn secondary" onclick="cancelEdit()">キャンセル</button>
-      <button style="margin-left:auto;color:var(--danger);background:none;border:none;font-size:14px;font-weight:600;padding:10px 4px" onclick="deleteUser()">削除</button>
-    </div></div>`;
+  if (editingId) {
+    const idx = data.ingredients.findIndex(i => i.id === editingId);
+    data.ingredients[idx] = { ...data.ingredients[idx], ...item };
   } else {
-    const days = (u.days||[]).length ? u.days.join('・') : '—';
-    html += `<div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">基本情報</div>
-        <div class="detail-row"><span class="detail-label">氏名</span><span class="detail-value">${esc(u.name)}</span></div>
-        <div class="detail-row"><span class="detail-label">よみがな</span><span class="detail-value ${!u.reading?'empty':''}">${esc(u.reading)||'未記入'}</span></div>
-        <div class="detail-row"><span class="detail-label">年齢</span><span class="detail-value ${!u.age?'empty':''}">${u.age?u.age+'歳':'未記入'}</span></div>
-        <div class="detail-row"><span class="detail-label">性別</span><span class="detail-value ${!u.gender?'empty':''}">${esc(u.gender)||'未記入'}</span></div>
-        <div class="detail-row"><span class="detail-label">利用曜日</span><span class="detail-value ${days==='—'?'empty':''}">${days}</span></div>
-      </div>`;
-    if(fields.length){
-      html += `<div class="detail-section"><div class="detail-section-title">詳細情報</div>`;
-      fields.forEach(f=>{
-        const val = (u.fields||{})[f.id]||'';
-        html += `<div class="detail-row"><span class="detail-label" style="width:auto;min-width:80px;margin-right:8px">${esc(f.name)}</span><span class="detail-value ${val?'':'empty'}">${val?esc(val):'未記入'}</span></div>`;
-      });
-      html += `</div>`;
-    }
-    html += `</div>`;
+    data.ingredients.push({ id: nextId(data.ingredients), ...item });
   }
 
-  document.getElementById('detailContent').innerHTML = html;
-}
-
-function toggleDetailEdit(){
-  if(detailEditMode) saveDetail();
-  else { detailEditMode=true; renderDetail(); }
-}
-
-function cancelEdit(){
-  detailEditMode=false;
-  renderDetail();
-}
-
-function toggleDay(btn, day){
-  btn.classList.toggle('selected');
-}
-
-function saveDetail(){
-  const users = getUsers();
-  const idx = users.findIndex(x=>x.id===detailUserId);
-  if(idx===-1) return;
-  const u = users[idx];
-  u.name = document.getElementById('e_name').value.trim()||u.name;
-  u.reading = document.getElementById('e_reading').value.trim();
-  u.age = document.getElementById('e_age').value.trim();
-  u.gender = document.getElementById('e_gender').value;
-  u.days = Array.from(document.querySelectorAll('.day-btn.selected')).map(b=>b.dataset.day);
-  const fields = getFields();
-  if(!u.fields) u.fields={};
-  fields.forEach(f=>{
-    const el = document.getElementById('ef_'+f.id);
-    if(el) u.fields[f.id] = el.value.trim();
-  });
-  setUsers(users);
-  detailEditMode=false;
-  renderDetail();
-}
-
-function deleteUser(){
-  showConfirm('この利用者を削除しますか？', ()=>{
-    let users = getUsers().filter(x=>x.id!==detailUserId);
-    setUsers(users);
-    showPage('users');
-  });
-}
-
-// ============================================================
-// MANUAL
-// ============================================================
-function renderManualList(){
-  const manuals = getManuals();
-  const list = document.getElementById('manualList');
-  if(!manuals.length){
-    list.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg><span>項目を追加してください</span></div>';
-    return;
-  }
-  list.innerHTML = manuals.map((m,i)=>`
-    <div class="manual-item ${m.open?'open':''}" id="mi_${m.id}">
-      <div class="manual-item-header" onclick="toggleManual('${m.id}')">
-        <span class="manual-item-title">${esc(m.title)}</span>
-        <span class="manual-chevron">›</span>
-      </div>
-      <div class="manual-item-body">
-        <p class="manual-item-text">${esc(m.content||'')}</p>
-        <div class="manual-item-actions">
-          <button class="settings-row-btn btn-blue" onclick="editManual('${m.id}')">編集</button>
-          <button class="settings-row-btn btn-red" onclick="deleteManual('${m.id}')">削除</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function toggleManual(id){
-  const manuals = getManuals();
-  const m = manuals.find(x=>x.id===id);
-  if(m){ m.open=!m.open; setManuals(manuals); }
-  const el = document.getElementById('mi_'+id);
-  if(el) el.classList.toggle('open');
-}
-
-function openAddManual(){
-  showModal(`
-    <h3>項目を追加</h3>
-    <label>タイトル</label>
-    <input id="mm_title" placeholder="例：緊急時対応" autofocus>
-    <label style="margin-top:12px;display:block">内容</label>
-    <textarea id="mm_body" rows="5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-size:15px;resize:vertical;outline:none" placeholder="テキストを入力…"></textarea>
-    <div class="modal-actions">
-      <button class="btn-gray" onclick="closeModal()">キャンセル</button>
-      <button class="btn-blue" onclick="saveNewManual()">追加</button>
-    </div>`);
-}
-function saveNewManual(){
-  const title = (document.getElementById('mm_title').value||'').trim();
-  if(!title) return;
-  const content = (document.getElementById('mm_body').value||'').trim();
-  const manuals = getManuals();
-  manuals.push({id:'m'+Date.now(), title, content, open:false});
-  setManuals(manuals);
+  saveData();
   closeModal();
-  renderManualList();
+  renderIngredients();
+  showToast(editingId ? '更新しました' : '追加しました ✅');
 }
 
-function editManual(id){
-  const manuals = getManuals();
-  const m = manuals.find(x=>x.id===id);
-  if(!m) return;
-  showModal(`
-    <h3>項目を編集</h3>
-    <label>タイトル</label>
-    <input id="em_title" value="${esc(m.title)}" autofocus>
-    <label style="margin-top:12px;display:block">内容</label>
-    <textarea id="em_body" rows="5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;font-size:15px;resize:vertical;outline:none">${esc(m.content||'')}</textarea>
-    <div class="modal-actions">
-      <button class="btn-gray" onclick="closeModal()">キャンセル</button>
-      <button class="btn-blue" onclick="updateManual('${id}')">保存</button>
-    </div>`);
-}
-function updateManual(id){
-  const title = (document.getElementById('em_title').value||'').trim();
-  if(!title) return;
-  const content = (document.getElementById('em_body').value||'').trim();
-  const manuals = getManuals();
-  const m = manuals.find(x=>x.id===id);
-  if(m){ m.title=title; m.content=content; setManuals(manuals); }
-  closeModal();
-  renderManualList();
-}
-function deleteManual(id){
-  showConfirm('この項目を削除しますか？', ()=>{
-    setManuals(getManuals().filter(x=>x.id!==id));
-    renderManualList();
-  });
-}
-
-// ============================================================
-// SETTINGS
-// ============================================================
-function renderSettings(){
-  renderFieldsList();
-}
-
-function renderFieldsList(){
-  const fields = getFields();
-  const container = document.getElementById('fieldsList');
-  if(!fields.length){ container.innerHTML='<div style="padding:14px 16px;color:var(--sub);font-size:14px">項目がありません</div>'; return; }
-  container.innerHTML = fields.map((f,i)=>`
-    <div class="field-item" draggable="true" data-id="${f.id}" data-idx="${i}">
-      <span class="field-handle">⠿</span>
-      <span class="field-item-name">${esc(f.name)}</span>
-      <div class="field-item-btns">
-        <button class="btn-gray" onclick="moveField('${f.id}',-1)" title="上へ" style="font-size:16px">↑</button>
-        <button class="btn-gray" onclick="moveField('${f.id}',1)" title="下へ" style="font-size:16px">↓</button>
-        <button class="btn-red" onclick="removeField('${f.id}')" style="color:#fff;background:var(--danger)">×</button>
+/* --- Dish Form --- */
+function buildDishForm(item) {
+  const v = item || { name: '', stars: 3, required_ingredients: [], servings_remaining: 0 };
+  setTimeout(() => { updateStarDisplay(selectedStars); renderDishIngredientTags(); }, 0);
+  return `
+    <div class="modal-title">${item ? '料理を編集' : '料理を追加'}</div>
+    <div class="form-group">
+      <label class="form-label">料理名 *</label>
+      <input class="form-input" id="dish-name" type="text" value="${esc(v.name)}" placeholder="例: 親子丼" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">評価</label>
+      <div class="star-input" id="star-input">
+        <span onclick="setStars(1)">★</span>
+        <span onclick="setStars(2)">★</span>
+        <span onclick="setStars(3)">★</span>
       </div>
-    </div>`).join('');
-  setupDrag();
+    </div>
+    <div class="form-group">
+      <label class="form-label">現在の残量（食分）</label>
+      <input class="form-input" id="dish-servings" type="number" value="${v.servings_remaining || 0}" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">必要食材</label>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="dish-ing-input" type="text" placeholder="食材名を入力または選択" style="flex:1" list="ing-datalist"
+          onkeydown="if(event.key==='Enter'){addDishIngredient();event.preventDefault()}">
+        <datalist id="ing-datalist">
+          ${data.ingredients.map(i => `<option value="${esc(i.name)}">`).join('')}
+        </datalist>
+        <button class="btn btn-secondary" onclick="addDishIngredient()" style="flex-shrink:0">追加</button>
+      </div>
+      <div class="ing-tags" id="dish-ing-tags"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveDish()">保存</button>
+    </div>
+  `;
 }
 
-function addField(){
-  const input = document.getElementById('newFieldInput');
+function setStars(n) { selectedStars = n; updateStarDisplay(n); }
+
+function updateStarDisplay(n) {
+  document.querySelectorAll('#star-input span').forEach((s, i) => s.classList.toggle('active', i < n));
+}
+
+function addDishIngredient() {
+  const input = document.getElementById('dish-ing-input');
   const name = input.value.trim();
-  if(!name) return;
-  const fields = getFields();
-  if(fields.find(f=>f.name===name)){ alert('同名の項目がすでにあります'); return; }
-  fields.push({id:'f'+Date.now(), name});
-  setFields(fields);
-  input.value='';
-  renderFieldsList();
+  if (!name || dishIngredients.includes(name)) { input.value = ''; return; }
+  dishIngredients.push(name);
+  renderDishIngredientTags();
+  input.value = '';
 }
 
-function removeField(id){
-  showConfirm('この項目を削除しますか？（全利用者の該当データも消えます）', ()=>{
-    setFields(getFields().filter(f=>f.id!==id));
-    renderFieldsList();
-  });
+function removeDishIngredient(name) {
+  dishIngredients = dishIngredients.filter(n => n !== name);
+  renderDishIngredientTags();
 }
 
-function moveField(id, dir){
-  const fields = getFields();
-  const idx = fields.findIndex(f=>f.id===id);
-  const ni = idx+dir;
-  if(ni<0||ni>=fields.length) return;
-  [fields[idx],fields[ni]]=[fields[ni],fields[idx]];
-  setFields(fields);
-  renderFieldsList();
+function renderDishIngredientTags() {
+  const el = document.getElementById('dish-ing-tags');
+  if (!el) return;
+  el.innerHTML = dishIngredients.map(name => `
+    <span class="ing-tag">
+      ${esc(name)}
+      <span class="ing-tag-remove" onclick="removeDishIngredient(${JSON.stringify(name)})">×</span>
+    </span>
+  `).join('');
 }
 
-// Drag & drop for fields
-let dragSrc=null;
-function setupDrag(){
-  const items = document.querySelectorAll('#fieldsList .field-item');
-  items.forEach(el=>{
-    el.addEventListener('dragstart', e=>{ dragSrc=el; e.dataTransfer.effectAllowed='move'; });
-    el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('drag-over'); });
-    el.addEventListener('dragleave', ()=>el.classList.remove('drag-over'));
-    el.addEventListener('drop', e=>{
-      e.preventDefault(); el.classList.remove('drag-over');
-      if(dragSrc===el) return;
-      const fields = getFields();
-      const from = parseInt(dragSrc.dataset.idx);
-      const to = parseInt(el.dataset.idx);
-      const [item] = fields.splice(from,1);
-      fields.splice(to,0,item);
-      setFields(fields);
-      renderFieldsList();
-    });
-  });
-}
+function saveDish() {
+  const name = document.getElementById('dish-name').value.trim();
+  if (!name) { showToast('料理名を入力してください'); return; }
 
-// PIN CHANGE
-function openPinChange(){
-  showModal(`
-    <h3>PINコード変更</h3>
-    <label>現在のPIN</label>
-    <input id="pc_old" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    <label style="margin-top:10px;display:block">新しいPIN（4桁）</label>
-    <input id="pc_new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    <label style="margin-top:10px;display:block">確認（再入力）</label>
-    <input id="pc_conf" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
-    <div class="modal-err" id="pc_err">&nbsp;</div>
-    <div class="modal-actions">
-      <button class="btn-gray" onclick="closeModal()">キャンセル</button>
-      <button class="btn-blue" onclick="savePin()">変更</button>
-    </div>`);
-}
-function savePin(){
-  const old = document.getElementById('pc_old').value;
-  const nw = document.getElementById('pc_new').value;
-  const cf = document.getElementById('pc_conf').value;
-  const err = document.getElementById('pc_err');
-  if(old!==getPin()){ err.textContent='現在のPINが違います'; return; }
-  if(!/^\d{4}$/.test(nw)){ err.textContent='4桁の数字を入力してください'; return; }
-  if(nw!==cf){ err.textContent='新しいPINが一致しません'; return; }
-  setPin(nw);
-  closeModal();
-  alert('PINを変更しました');
-}
+  const item = {
+    name,
+    stars: selectedStars,
+    required_ingredients: [...dishIngredients],
+    servings_remaining: parseInt(document.getElementById('dish-servings').value) || 0,
+  };
 
-// DELETE ALL
-function confirmDeleteAll(){
-  showConfirm('すべてのデータを削除します。この操作は元に戻せません。', ()=>{
-    localStorage.removeItem('users');
-    localStorage.removeItem('fields');
-    localStorage.removeItem('manuals');
-    alert('データを削除しました');
-    renderSettings();
-    renderUserList();
-  });
-}
-
-// ============================================================
-// OVERVIEW
-// ============================================================
-let ovChecked = null;       // Set of visible user ids
-let ovVisibleFields = null; // Set of visible field ids
-
-const OV_BASIC = [
-  {id:'_name',  name:'氏名'},
-  {id:'_reading',name:'よみがな'},
-  {id:'_age',   name:'年齢'},
-  {id:'_gender',name:'性別'},
-  {id:'_days',  name:'利用曜日'},
-];
-
-function ovAllFieldIds(){ return [...OV_BASIC, ...getFields()].map(f=>f.id); }
-
-function renderOverview(){
-  const users = getUsers();
-  if(ovChecked===null) ovChecked = new Set(users.map(u=>u.id));
-  if(ovVisibleFields===null) ovVisibleFields = new Set(ovAllFieldIds());
-  // 新しいユーザー/フィールドを自動追加
-  users.forEach(u=>{ if(!ovChecked.has(u.id)) ovChecked.add(u.id); });
-  ovAllFieldIds().forEach(id=>{ if(!ovVisibleFields.has(id)) ovVisibleFields.add(id); });
-  renderOvTable();
-  updateOvSubLabel();
-}
-
-function updateOvSubLabel(){
-  const users = getUsers();
-  const totalF = ovAllFieldIds().length;
-  const uLabel = ovChecked.size===users.length?'全員':ovChecked.size+'人';
-  const fLabel = ovVisibleFields.size===totalF?'全項目':ovVisibleFields.size+'項目';
-  document.getElementById('ovSubLabel').textContent = `${uLabel}・${fLabel}を表示`;
-}
-
-function toggleOvPanel(type){
-  const uid = type==='user'?'ovUserPanel':'ovFieldPanel';
-  const other = type==='user'?'ovFieldPanel':'ovUserPanel';
-  document.getElementById(other).classList.remove('open');
-  const panel = document.getElementById(uid);
-  const opening = !panel.classList.contains('open');
-  panel.classList.toggle('open');
-  if(opening){
-    if(type==='user') renderOvCheckList();
-    else renderOvFieldCheckList();
-  }
-}
-
-function applyOvPanel(){
-  document.getElementById('ovUserPanel').classList.remove('open');
-  document.getElementById('ovFieldPanel').classList.remove('open');
-  renderOvTable();
-  updateOvSubLabel();
-}
-
-// --- User filter ---
-function renderOvCheckList(){
-  const users = getUsers();
-  document.getElementById('ovCheckList').innerHTML = users.map(u=>`
-    <label class="ucheck-label">
-      <input type="checkbox" data-uid="${u.id}" ${ovChecked.has(u.id)?'checked':''} onchange="ovCheckChange(this)">
-      ${esc(u.name)}
-    </label>`).join('');
-}
-function ovCheckChange(cb){ cb.checked?ovChecked.add(cb.dataset.uid):ovChecked.delete(cb.dataset.uid); }
-function ovCheckAll(){ getUsers().forEach(u=>ovChecked.add(u.id)); renderOvCheckList(); }
-function ovUncheckAll(){ ovChecked.clear(); renderOvCheckList(); }
-
-// --- Field filter ---
-function renderOvFieldCheckList(){
-  const allFields = [...OV_BASIC, ...getFields()];
-  document.getElementById('ovFieldCheckList').innerHTML = allFields.map(f=>`
-    <label class="ucheck-label">
-      <input type="checkbox" data-fid="${f.id}" ${ovVisibleFields.has(f.id)?'checked':''} onchange="ovFieldChange(this)">
-      ${esc(f.name)}
-    </label>`).join('');
-}
-function ovFieldChange(cb){ cb.checked?ovVisibleFields.add(cb.dataset.fid):ovVisibleFields.delete(cb.dataset.fid); }
-function ovFieldAll(){ ovAllFieldIds().forEach(id=>ovVisibleFields.add(id)); renderOvFieldCheckList(); }
-function ovFieldNone(){ ovVisibleFields.clear(); renderOvFieldCheckList(); }
-
-// --- Table render ---
-function renderOvTable(){
-  const users = sortedUsers();
-  const allFields = [...OV_BASIC, ...getFields()];
-  const targets = users.filter(u=>ovChecked.has(u.id));
-  const visFields = allFields.filter(f=>ovVisibleFields.has(f.id));
-  const tbl = document.getElementById('ovTable');
-
-  if(!targets.length||!visFields.length){
-    tbl.innerHTML=`<tbody><tr><td colspan="2" style="padding:40px;text-align:center;color:var(--sub);font-size:14px">${!targets.length?'人を選択してください':'項目を選択してください'}</td></tr></tbody>`;
-    return;
+  if (editingId) {
+    const idx = data.dishes.findIndex(d => d.id === editingId);
+    data.dishes[idx] = { ...data.dishes[idx], ...item };
+  } else {
+    data.dishes.push({ id: nextId(data.dishes), ...item });
   }
 
-  const thead = `<thead><tr>
-    <th class="ov-col-label">項目</th>
-    ${targets.map(u=>`<th class="ov-cell">${esc(u.name)}</th>`).join('')}
-  </tr></thead>`;
-
-  const tbody = visFields.map(f=>{
-    const cells = targets.map(u=>{
-      let val='';
-      if(f.id==='_name') val=u.name;
-      else if(f.id==='_reading') val=u.reading||'';
-      else if(f.id==='_age') val=u.age?u.age+'歳':'';
-      else if(f.id==='_gender') val=u.gender||'';
-      else if(f.id==='_days') val=(u.days||[]).join('・');
-      else val=(u.fields||{})[f.id]||'';
-      return `<td class="ov-cell ${val?'':'empty'}">${val?esc(val):'—'}</td>`;
-    }).join('');
-    return `<tr><td class="ov-col-label">${esc(f.name)}</td>${cells}</tr>`;
-  }).join('');
-
-  tbl.innerHTML = thead+`<tbody>${tbody}</tbody>`;
-}
-
-// ============================================================
-// MODAL HELPERS
-// ============================================================
-function showModal(html, center=false){
+  saveData();
   closeModal();
-  const ov = document.createElement('div');
-  ov.className = 'overlay'+(center?' center':'');
-  ov.id = 'activeOverlay';
-  ov.innerHTML = `<div class="modal">${html}</div>`;
-  ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(); });
-  document.getElementById('overlayContainer').appendChild(ov);
+  renderDishes();
+  showToast(editingId ? '更新しました' : '追加しました ✅');
 }
-function closeModal(){
-  const ov = document.getElementById('activeOverlay');
-  if(ov) ov.remove();
-}
-function showConfirm(msg, onOk){
-  showModal(`
-    <h3>確認</h3>
-    <p style="font-size:15px;line-height:1.6;margin-bottom:4px">${esc(msg)}</p>
+
+/* --- Request Form --- */
+function buildRequestForm(item) {
+  const v = item || { name: '', priority: '中', checked_N: false, checked_Y: false };
+  return `
+    <div class="modal-title">${item ? 'リクエストを編集' : 'リクエストを追加'}</div>
+    <div class="form-group">
+      <label class="form-label">料理名 *</label>
+      <input class="form-input" id="req-name" type="text" value="${esc(v.name)}" placeholder="例: カレー" autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">優先度</label>
+      <select class="form-select" id="req-priority">
+        <option ${v.priority === '高' ? 'selected' : ''}>高</option>
+        <option ${v.priority === '中' ? 'selected' : ''}>中</option>
+        <option ${v.priority === '低' ? 'selected' : ''}>低</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">リクエストした人</label>
+      <div style="display:flex;gap:24px;padding:10px 0">
+        <label class="req-check-label">
+          <input type="checkbox" id="req-n" ${v.checked_N ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)">
+          N
+        </label>
+        <label class="req-check-label">
+          <input type="checkbox" id="req-y" ${v.checked_Y ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--primary)">
+          Y
+        </label>
+      </div>
+    </div>
     <div class="modal-actions">
-      <button class="btn-gray" onclick="closeModal()">キャンセル</button>
-      <button class="btn-red" onclick="closeModal();(${onOk.toString()})()">削除</button>
-    </div>`, true);
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveRequest()">保存</button>
+    </div>
+  `;
 }
 
-// ============================================================
-// UTILS
-// ============================================================
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function saveRequest() {
+  const name = document.getElementById('req-name').value.trim();
+  if (!name) { showToast('料理名を入力してください'); return; }
 
-// ============================================================
-// INIT
-// ============================================================
-document.addEventListener('DOMContentLoaded', ()=>{
-  // already on pin screen
-});
+  const item = {
+    name,
+    priority: document.getElementById('req-priority').value,
+    checked_N: document.getElementById('req-n').checked,
+    checked_Y: document.getElementById('req-y').checked,
+    done: editingId ? (data.requests.find(r => r.id === editingId)?.done ?? false) : false,
+  };
+
+  if (editingId) {
+    const idx = data.requests.findIndex(r => r.id === editingId);
+    data.requests[idx] = { ...data.requests[idx], ...item };
+  } else {
+    data.requests.push({ id: nextId(data.requests), ...item });
+  }
+
+  saveData();
+  closeModal();
+  renderRequests();
+  showToast(editingId ? '更新しました' : '追加しました ✅');
+}
+
+/* --- Shopping Form --- */
+function buildShoppingForm() {
+  return `
+    <div class="modal-title">買い物を追加</div>
+    <div class="form-group">
+      <label class="form-label">品名 *</label>
+      <input class="form-input" id="shop-name" type="text" placeholder="例: 牛乳" autofocus
+        onkeydown="if(event.key==='Enter')saveShopping()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveShopping()">追加</button>
+    </div>
+  `;
+}
+
+function saveShopping() {
+  const name = document.getElementById('shop-name').value.trim();
+  if (!name) { showToast('品名を入力してください'); return; }
+  data.shopping_list.push({ id: nextId(data.shopping_list), name, checked: false, auto_added: false });
+  saveData();
+  closeModal();
+  renderShopping();
+  showToast('追加しました ✅');
+}
+
+/* ===================== UTILS ===================== */
+
+function esc(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+/* ===================== INIT ===================== */
+loadData();
 </script>
 </body>
 </html>
